@@ -301,6 +301,7 @@ ipcMain.on('setup-save', (e, d) => {
   if (setupWin) setupWin.close();
   updateTray();
   startServer();            // starts now if the token only just arrived
+  
 });
 
 // ---------- silent auto-update ----------
