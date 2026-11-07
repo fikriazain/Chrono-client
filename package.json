@@ -42,7 +42,7 @@
     ],
     "win": {
       "target": "nsis",
-      "artifactName": "Chrono-Receiver-Setup-${version}.${ext}"
+      "artifactName": "Chrono Receiver.${ext}"
     },
     "nsis": {
       "oneClick": true,
