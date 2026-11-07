@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body { margin: 0; padding: 22px; background: #0a0620; color: #eaf1ff; font-family: 'Segoe UI', sans-serif; }
+      h1 { font-size: 18px; margin: 0 0 6px; color: #8fc4ff; }
+      p { font-size: 13px; margin: 0 0 12px; color: #9fb4d8; line-height: 1.4; }
+      label { display: block; font-size: 12px; margin: 10px 0 4px; color: #8fc4ff; }
+      input { width: 100%; box-sizing: border-box; padding: 9px 10px; background: #05030f; border: 2px solid #2f6bff; color: #fff; font-size: 14px; outline: 0; }
+      input:focus { border-color: #ff2bd6; }
+      button { margin-top: 16px; padding: 9px 22px; background: #2f6bff; border: 0; color: #fff; font-size: 14px; cursor: pointer; }
+      button:hover { background: #ff2bd6; }
+      #tokrow { display: none; }
+    </style>
+  </head>
+  <body>
+    <h1>Chrono receiver</h1>
+    <p>Name this PC. This is what the sender sees when they look for devices on the network.</p>
+    <label>Device name</label>
+    <input id="name" maxlength="24" autofocus />
+    <div id="tokrow">
+      <label>Pairing code (ask the sender)</label>
+      <input id="token" />
+    </div>
+    <button id="save">Save</button>
+    <script>
+      const q = new URLSearchParams(location.search);
+      const name = document.getElementById('name');
+      name.value = q.get('name') || '';
+      name.select();
+      if (q.get('needToken')) document.getElementById('tokrow').style.display = 'block';
+      function save() { window.setup.save(name.value, document.getElementById('token').value); }
+      document.getElementById('save').onclick = save;
+      document.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
+    </script>
+  </body>
+</html>

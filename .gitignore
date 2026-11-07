@@ -25,3 +25,9 @@ Thumbs.db
 captures/
 
 assets/
+
+
+node_modules/
+dist/
+defaults.json
+lan.json

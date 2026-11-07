@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      html, body { margin: 0; background: transparent; overflow: hidden; }
+      canvas {
+        width: 100vw; height: 100vh; display: block;
+        cursor: pointer;
+        touch-action: none;
+        user-select: none;
+      }
+      #zzz { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+      .z {
+        position: absolute;
+        top: 28%;
+        font: 900 22px 'Bahnschrift', 'Segoe UI', sans-serif;
+        color: #cfe3ff;
+        text-shadow: -2px 0 #00f0ff, 2px 0 #ff2bd6;
+        opacity: 0;
+        animation: zrise 2.6s steps(10) forwards;
+      }
+      @keyframes zrise {
+        0%   { transform: translate(0, 0) scale(.5); opacity: 0; }
+        15%  { opacity: 1; }
+        100% { transform: translate(34px, -85px) scale(1.5) rotate(12deg); opacity: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+    <div id="zzz"></div>
+    <script src="renderer.js"></script>
+  </body>
+</html>
