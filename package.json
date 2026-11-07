@@ -1,7 +1,7 @@
 {
   "name": "chrono-client",
   "productName": "Chrono Receiver",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Chrono message receiver",
   "author": "Zain",
   "license": "ISC",
@@ -21,17 +21,32 @@
     "appId": "com.zain.chronoreceiver",
     "productName": "Chrono Receiver",
     "files": [
-      "main.js", "preload.js", "renderer.js", "bubble.js", "fx.js",
-      "index.html", "bubble.html", "fx.html", "setup.html",
+      "main.js",
+      "preload.js",
+      "renderer.js",
+      "bubble.js",
+      "fx.js",
+      "index.html",
+      "bubble.html",
+      "fx.html",
+      "setup.html",
       "assets/**"
     ],
     "publish": [
-      { "provider": "github", "owner": "fikriazain", "repo": "chrono-client", "releaseType": "release" }
+      {
+        "provider": "github",
+        "owner": "fikriazain",
+        "repo": "chrono-client",
+        "releaseType": "release"
+      }
     ],
     "win": {
       "target": "nsis",
       "artifactName": "Chrono-Receiver-Setup-${version}.${ext}"
     },
-    "nsis": { "oneClick": true, "perMachine": false }
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    }
   }
 }
