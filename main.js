@@ -1,6 +1,6 @@
 // Receiver only: no AI, no screenshots, no reminders. It shows a visit and carries a reply back.
-const { autoUpdater } = require('electron-updater');
 const { app, BrowserWindow, screen, ipcMain, Tray, Menu, nativeImage } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
 const http = require('http');
@@ -24,6 +24,7 @@ let win, bubbleWin, fxWin, tray;
 let bubbleOpen = false;
 let fxKind = null, fxResolve = null;
 let visiting = false, visitEnd = null, visitDeadline = 0, replyText = null;
+let server = null;
 const hits = [];
 const seen = new Map();
 const discHits = [];
@@ -291,6 +292,7 @@ function openSetup(first) {
 
 ipcMain.on('setup-save', (e, d) => {
   const name = String((d && d.name) || '').trim().replace(/[^\p{L}\p{N} _.-]/gu, '').slice(0, 24);
+  if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: true });
   if (name) lan.deviceName = name;
   const tok = String((d && d.token) || '').trim();
   if (tok && !lan.token) lan.token = tok;
@@ -326,8 +328,7 @@ app.whenReady().then(() => {
   loadLan();
   createWindows();
   createTray();
-  startDiscovery();
   startServer();
-  if (!lan.named || !lan.token) openSetup(true);
-  if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: true });
+  startDiscovery();
+  setupUpdates();
 });

@@ -5,10 +5,6 @@ contextBridge.exposeInMainWorld('mini', {
   click() {}, dragStart() {}, dragBegin() {}, dragMove() {}, dragEnd() {}, onSleep() {},
 });
 
-contextBridge.exposeInMainWorld('setup', {
-  save: (name, token) => ipcRenderer.send('setup-save', { name, token }),
-});
-
 contextBridge.exposeInMainWorld('bubble', {
   send: (text) => ipcRenderer.invoke('chat-send', text),
   hidden: () => ipcRenderer.send('bubble-hidden'),
@@ -23,4 +19,8 @@ contextBridge.exposeInMainWorld('fxApi', {
   ready: () => ipcRenderer.send('fx-ready'),
   arrive: () => ipcRenderer.send('fx-arrive'),
   done: () => ipcRenderer.send('fx-done'),
+});
+
+contextBridge.exposeInMainWorld('setup', {
+  save: (name, token) => ipcRenderer.send('setup-save', { name, token }),
 });
