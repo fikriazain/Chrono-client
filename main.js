@@ -174,6 +174,12 @@ const closeBubble = () => {
 };
 const waitHidden = async (ms) => { const t0 = Date.now(); while (bubbleOpen && Date.now() - t0 < ms) await wait(100); };
 
+function endVisit(reason) {
+  if (!visitEnd) return;
+  console.log('[visit] ending:', reason, 'after', Date.now() - visitStartedAt, 'ms');
+  visitEnd();
+}
+
 ipcMain.on('bubble-hidden', () => {
   if (!bubbleAlive()) return;
   // a "closed" signal right after the bubble opened must be a stale one: show the bubble again and keep the visit going
