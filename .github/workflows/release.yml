@@ -20,3 +20,5 @@ jobs:
       - run: npx electron-builder --win --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_CSC_LINK: ${{ secrets.WITH_CSC_LINK }}
+          WITH_CSC_KEY_PASSWORD: ${{ secrets.WITH_CSC_KEY_PASSWORD }}
