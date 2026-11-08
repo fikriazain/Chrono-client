@@ -90,11 +90,6 @@ function createWindows() {
   placeCharacter();
   screen.on('display-metrics-changed', placeCharacter);
 
-  bubbleWin = new BrowserWindow({ ...base, width: BUB_W, height: BUB_H, show: false, webPreferences: prefs });
-  bubbleWin.setAlwaysOnTop(true, 'screen-saver');
-  bubbleWin.loadFile('bubble.html');
-  forwardLogs(bubbleWin, '[bubble]');
-
   fxWin = new BrowserWindow({ ...base, width: WIN_W + 2 * FX_PAD_X, height: WIN_H + 2 * FX_PAD_Y,
     show: false, focusable: false, webPreferences: prefs });
   fxWin.setAlwaysOnTop(true, 'screen-saver');
@@ -132,6 +127,29 @@ ipcMain.on('fx-arrive', () => { win.showInactive(); fxWin.moveTop(); });
 ipcMain.on('fx-done', () => finishFx());
 
 // ---------- bubble ----------
+const bubbleAlive = () => bubbleWin && !bubbleWin.isDestroyed();
+
+// a brand-new bubble window for every visit
+function makeBubbleWindow() {
+  if (bubbleAlive()) bubbleWin.destroy();
+  bubbleWin = new BrowserWindow({
+    width: BUB_W, height: BUB_H, show: false,
+    transparent: true, frame: false, alwaysOnTop: true, resizable: false, hasShadow: false, skipTaskbar: true,
+    webPreferences: { preload: path.join(__dirname, 'preload.js'), backgroundThrottling: false },
+  });
+  bubbleWin.setAlwaysOnTop(true, 'screen-saver');
+  forwardLogs(bubbleWin, '[bubble]');
+  bubbleWin.loadFile('bubble.html');
+  bubbleOpen = false;
+}
+
+function dropBubbleWindow() {
+  bubbleOpen = false;
+  if (bubbleAlive()) bubbleWin.destroy();
+  bubbleWin = null;
+}
+
+
 function openBubble(text) {
   bubbleGen++;
   bubbleOpen = true;
@@ -143,10 +161,11 @@ function openBubble(text) {
   if (bubbleWin.webContents.isLoading()) bubbleWin.webContents.once('did-finish-load', send); else send();
 }
 const closeBubble = () => {
+  if (!bubbleAlive()) return;
   bubbleWin.webContents.send('bubble-close');
   const g = bubbleGen;
   setTimeout(() => {                            // if the page never confirmed, hide it ourselves
-    if (bubbleOpen && bubbleGen === g) {
+    if (bubbleAlive() && bubbleOpen && bubbleGen === g) {
       console.log('[bubble] force hide (no confirmation from the page)');
       bubbleOpen = false;
       bubbleWin.hide();
@@ -155,11 +174,20 @@ const closeBubble = () => {
 };
 const waitHidden = async (ms) => { const t0 = Date.now(); while (bubbleOpen && Date.now() - t0 < ms) await wait(100); };
 
-ipcMain.on('bubble-hidden', () => {      // closed with x or Esc, or by us
+ipcMain.on('bubble-hidden', () => {
+  if (!bubbleAlive()) return;
+  // a "closed" signal right after the bubble opened must be a stale one: show the bubble again and keep the visit going
+  if (visiting && visitEnd && Date.now() - bubbleOpenedAt < 2500) {
+    console.log('[bubble] early close ignored, showing it again');
+    bubbleWin.webContents.send('bubble-open', bubbleText);
+    return;
+  }
   bubbleOpen = false;
   bubbleWin.hide();
-  if (visitEnd) visitEnd();
+  endVisit('bubble closed');
 });
+
+
 ipcMain.on('bubble-touch', () => {       // he clicked or typed: give him more time
   visitDeadline = Math.max(visitDeadline, Date.now() + lan.stayMs);
 });
@@ -175,8 +203,11 @@ async function runVisit(m, respond) {
   visiting = true;
   replyText = null;
   const started = Date.now();
+  visitStartedAt = started;
+  console.log('[visit] start');
   let timer = null;
   try {
+    makeBubbleWindow();                         // a fresh page for every visit
     placeCharacter();
     await playFx('in');
     openBubble(`From ${m.from}: ${m.text}`);
@@ -184,7 +215,8 @@ async function runVisit(m, respond) {
     await new Promise((end) => {
       visitEnd = end;
       timer = setInterval(() => {
-        if (Date.now() > visitDeadline || Date.now() - started > MAX_VISIT_MS) end();
+        if (Date.now() > visitDeadline) endVisit('time ran out');
+        else if (Date.now() - started > MAX_VISIT_MS) endVisit('60 second limit');
       }, 500);
     });
   } catch (e) {
@@ -193,7 +225,7 @@ async function runVisit(m, respond) {
     clearInterval(timer);
     visitEnd = null;
   }
-  respond({ ok: true, reply: replyText });     // the answer goes back to your PC now, while she leaves
+  respond({ ok: true, reply: replyText });      // the answer goes back to your PC now, while she leaves
   try {
     if (bubbleOpen) { closeBubble(); await waitHidden(900); }
     await playFx('out');
@@ -201,6 +233,7 @@ async function runVisit(m, respond) {
     console.error('[visit] leaving failed', e);
     win.hide();
   }
+  dropBubbleWindow();                           // throw the bubble window away
   visiting = false;
 }
 
