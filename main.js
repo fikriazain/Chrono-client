@@ -201,6 +201,7 @@ ipcMain.handle('chat-send', (e, text) => {   // the reply box
   if (!visiting || replyText !== null) return '...';
   replyText = String(text).trim().slice(0, 140) || null;
   if (replyText) setTimeout(() => { if (visitEnd) visitEnd(); }, 2000);   // let her speak her line first
+  
   return pick(ACK_LINES);
 });
 
