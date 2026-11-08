@@ -77,7 +77,7 @@ function placeBubble() {
 }
 
 function createWindows() {
-  const prefs = { preload: path.join(__dirname, 'preload.js') };
+  const prefs = { preload: path.join(__dirname, 'preload.js'), backgroundThrottling: false };
   const base = { transparent: true, frame: false, alwaysOnTop: true, resizable: false, hasShadow: false, skipTaskbar: true };
 
   win = new BrowserWindow({ ...base, width: WIN_W, height: WIN_H, show: false, focusable: false,
@@ -111,6 +111,8 @@ function finishFx() {
 
 function playFx(kind) {   // 'in' = she appears here, 'out' = she leaves
   return new Promise((resolve) => {
+    if (fxResolve) { const old = fxResolve; fxResolve = null; old(); }   // never leave an older call waiting forever
+console.log('[fx] play', kind);
     fxKind = kind;
     fxResolve = resolve;
     const mb = win.getBounds();
@@ -128,9 +130,12 @@ ipcMain.on('fx-done', () => finishFx());
 
 // ---------- bubble ----------
 function openBubble(text) {
+  bubbleGen++;
   bubbleOpen = true;
   placeBubble();
-  bubbleWin.showInactive();    // no keyboard-focus steal: he clicks the box when he wants to reply
+  bubbleWin.showInactive();
+  bubbleWin.setAlwaysOnTop(true, 'screen-saver');
+  bubbleWin.moveTop();
   const send = () => bubbleWin.webContents.send('bubble-open', text);
   if (bubbleWin.webContents.isLoading()) bubbleWin.webContents.once('did-finish-load', send); else send();
 }
@@ -335,6 +340,8 @@ function setupUpdates() {
   setTimeout(check, 30 * 1000);
   setInterval(check, 6 * 60 * 60 * 1000);
 }
+
+app.commandLine.appendSwitch('disable-features', 'CalculateNativeWinOcclusion');   // known workaround for animations stalling in covered windows
 
 app.whenReady().then(() => {
   loadLan();

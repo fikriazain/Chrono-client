@@ -20,6 +20,7 @@ const easeOut = (k) => 1 - Math.pow(1 - k, 3);
 let img = null, S = null;
 let dpr = 1, W = 0, H = 0, CX = 0, CY = 0, R = { x: 0, y: 0, w: 0, h: 0 };
 let kind = 'out', running = false, start = 0, lastStep = -1e9, arrived = false;
+let rafId = 0, watchdog = 0, runId = 0;
 
 const DELAY = Array.from({ length: NSTRIPS }, () => rand(0, 0.4));
 const SCATTER = Array.from({ length: NSTRIPS }, () => ({ x: rand(-170, 170), y: rand(-150, 150) }));
@@ -153,26 +154,45 @@ function render(t, ph) {
   if (ph === 'arrive') drawArrive(t);
 }
 
+function stopRun() {
+  running = false;
+  cancelAnimationFrame(rafId);
+  clearTimeout(watchdog);
+}
+
+function finishRun(id) {
+  if (id !== runId) return;                      // an old run must not end a newer one
+  stopRun();
+  if (kind === 'in' && !arrived) { arrived = true; window.fxApi.arrive(); }   // she must always show up
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, cvs.width, cvs.height);
+  console.log('[fx] end', kind);
+  window.fxApi.done();
+}
+
 function tick(now) {
   if (!running) return;
-  const t = Math.max(0, now - start);
-  if (now - lastStep >= STEP) { lastStep = now; roll(t); }
-  const ph = phaseOf(t);
-  if (kind === 'in' && ph === 'arrive' && !arrived) { arrived = true; window.fxApi.arrive(); }   // main shows the mini now
-  if (ph === 'end') {
-    running = false;
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, cvs.width, cvs.height);
-    window.fxApi.done();
+  const id = runId;
+  try {
+    const t = Math.max(0, now - start);
+    if (now - lastStep >= STEP) { lastStep = now; roll(t); }
+    const ph = phaseOf(t);
+    if (kind === 'in' && ph === 'arrive' && !arrived) { arrived = true; window.fxApi.arrive(); }
+    if (ph === 'end') { finishRun(id); return; }
+    render(t, ph);
+  } catch (e) {
+    console.error('[fx] draw error:', e);
+    finishRun(id);
     return;
   }
-  render(t, ph);
-  requestAnimationFrame(tick);
+  rafId = requestAnimationFrame(tick);
 }
 
 window.fxApi.onStart(async (d) => {
-  if (running) return;
+  stopRun();                                     // a new start always replaces an old run
+  const id = ++runId;
   kind = d.kind;
+  console.log('[fx] start', kind);
   dpr = window.devicePixelRatio || 1;
   W = d.size.w + 2 * d.pad.x; H = d.size.h + 2 * d.pad.y;
   cvs.width = Math.round(W * dpr); cvs.height = Math.round(H * dpr);
@@ -180,7 +200,8 @@ window.fxApi.onStart(async (d) => {
   CX = R.x + R.w / 2; CY = R.y + R.h / 2;
 
   if (!img) img = await loadImage(FILE);
-  if (!img) {                                            // image missing: skip the effect
+  if (id !== runId) return;                      // a newer start arrived while the image loaded
+  if (!img) {
     console.error('[fx] image not found:', FILE);
     if (kind === 'in') window.fxApi.arrive();
     window.fxApi.done();
@@ -188,7 +209,9 @@ window.fxApi.onStart(async (d) => {
   }
   S = makeSprite(img, R.w, R.h);
   arrived = false; lastStep = -1e9; running = true; start = performance.now();
-  roll(0); render(0, phaseOf(0));                        // first frame, drawn while still hidden
+  roll(0); render(0, phaseOf(0));                // first frame, drawn while still hidden
   window.fxApi.ready();
-  requestAnimationFrame(tick);
+  rafId = requestAnimationFrame(tick);
+  const total = kind === 'out' ? OUT_GLITCH + OUT_FLY : IN_FLY + IN_ARRIVE;
+  watchdog = setTimeout(() => { console.log('[fx] watchdog ended the run'); finishRun(id); }, total + 1500);
 });
