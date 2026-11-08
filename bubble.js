@@ -3,13 +3,14 @@ const $ = (id) => document.getElementById(id);
 const pop = $('pop'), msg = $('msg'), input = $('in'), g1 = $('g1'), g2 = $('g2');
 const rand = (a, b) => a + Math.random() * (b - a);
 
-const GREETING = "You called? Don't make me wait too long, or I'll leave.";
+const GREETING = "You called. Make it quick, Zain.";
 const STEP = 66;                 // glitch holds each drawing this long (anime "on twos")
 let burst = 0;                   // > 0 while a glitch burst is running (counts ticks)
 let busy = false, closing = false, typeId = 0;
-let openCount = 0;
-let isOpen = false;
-let seq = 0;
+let isOpen = false;              // the bubble is showing
+let openCount = 0;               // counts opens, so a stale reply can be dropped
+let seq = 0;                     // counts opens and closes, so an old close cannot hide a reopened bubble
+let startTimer = null;           // the delayed first line
 
 // ---------- Glitch: re-rolled every STEP ms, held in between ----------
 function slice(g, strong) {
@@ -53,8 +54,10 @@ function typeText(str) {
 
 // ---------- Pop in / out ----------
 function open(text = GREETING) {
+  pop.getAnimations().forEach((a) => a.cancel());   // drop an old close animation (fill: 'forwards')
+  clearTimeout(startTimer);
+  typeId++;                                         // stop any text still being typed
   seq++;
-  pop.getAnimations().forEach((a) => a.cancel());
   openCount++;
   isOpen = true;
   closing = false; busy = false;
@@ -66,9 +69,10 @@ function open(text = GREETING) {
     { duration: 420, easing: 'steps(7)' }
   );
   input.focus();
-  setTimeout(() => typeText(text), 330);
+  startTimer = setTimeout(() => typeText(text), 330);
 }
 
+// a line from outside the chat (the drag lines): pops the bubble open if it is hidden
 function say(text) {
   if (!isOpen || closing) { open(text); return; }
   burst = 5;
@@ -76,24 +80,24 @@ function say(text) {
 }
 
 function close() {
-  if (!isOpen) { window.bubble.hidden(); return; }   // out of sync: tell main it is hidden
+  if (!isOpen && !closing) { window.bubble.hidden(); return; }   // out of sync: just tell main it is hidden
   if (closing) return;
   const mine = ++seq;
   closing = true; typeId++; burst = 6;
+  clearTimeout(startTimer);
   let done = false;
   const finish = () => {
-    if (done || mine !== seq) return;        // already finished, or the bubble was reopened meanwhile
+    if (done || mine !== seq) return;               // already finished, or the bubble was reopened meanwhile
     done = true;
     isOpen = false; closing = false;
     pop.style.opacity = 0;
-    console.log('[bubble.js] hidden');
     window.bubble.hidden();
   };
   pop.animate(
     [{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(1.05) skewX(8deg)', opacity: .8, offset: .3 }, { transform: 'scale(.1)', opacity: 0 }],
     { duration: 260, easing: 'steps(4)', fill: 'forwards' }
   ).onfinish = finish;
-  setTimeout(finish, 600);                   // if nothing was being drawn, the animation may never finish
+  setTimeout(finish, 600);                          // if nothing was being drawn, the animation may never finish
 }
 
 // ---------- Chat ----------
@@ -104,7 +108,7 @@ async function submit() {
   busy = true; input.value = ''; burst = 4;
   await typeText('▒▒▒');
   const reply = await window.bubble.send(text);
-  if (mine !== openCount) return;        // closed and reopened while waiting: drop the old reply
+  if (mine !== openCount) return;                   // closed and reopened while waiting: drop the old reply
   burst = 3;
   await typeText(reply);
   busy = false;
@@ -114,14 +118,10 @@ input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
 $('x').addEventListener('click', close);
 
+window.bubble.onOpen(open);
+window.bubble.onClose(close);
 window.bubble.onSay(say);
 
-// if you click or type in a bubble that a drag opened, keep it open
+// a click or typing in a bubble that a drag opened keeps it open
 document.addEventListener('pointerdown', () => window.bubble.touch());
 input.addEventListener('input', () => window.bubble.touch());
-
-window.bubble.onOpen(open);
-window.bubble.onClose(() => {
-  if (Date.now() - openedAt < 1500) { console.log('[bubble.js] ignored a close right after opening'); return; }
-  close();
-});

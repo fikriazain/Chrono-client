@@ -134,7 +134,17 @@ function openBubble(text) {
   const send = () => bubbleWin.webContents.send('bubble-open', text);
   if (bubbleWin.webContents.isLoading()) bubbleWin.webContents.once('did-finish-load', send); else send();
 }
-const closeBubble = () => bubbleWin.webContents.send('bubble-close');
+const closeBubble = () => {
+  bubbleWin.webContents.send('bubble-close');
+  const g = bubbleGen;
+  setTimeout(() => {                            // if the page never confirmed, hide it ourselves
+    if (bubbleOpen && bubbleGen === g) {
+      console.log('[bubble] force hide (no confirmation from the page)');
+      bubbleOpen = false;
+      bubbleWin.hide();
+    }
+  }, 1500);
+};
 const waitHidden = async (ms) => { const t0 = Date.now(); while (bubbleOpen && Date.now() - t0 < ms) await wait(100); };
 
 ipcMain.on('bubble-hidden', () => {      // closed with x or Esc, or by us
