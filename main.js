@@ -122,6 +122,7 @@ console.log('[fx] play', kind);
     setTimeout(() => {   // safety net
       if (fxResolve === resolve) { if (kind === 'in') win.showInactive(); else win.hide(); finishFx(); }
     }, 5000);
+    
   });
 }
 ipcMain.on('fx-ready', () => { fxWin.showInactive(); if (fxKind === 'out') win.hide(); });
