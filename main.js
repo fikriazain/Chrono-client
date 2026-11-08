@@ -25,6 +25,8 @@ let bubbleOpen = false;
 let fxKind = null, fxResolve = null;
 let visiting = false, visitEnd = null, visitDeadline = 0, replyText = null;
 let server = null;
+let bubbleGen = 0;
+
 const hits = [];
 const seen = new Map();
 const discHits = [];
@@ -122,7 +124,7 @@ console.log('[fx] play', kind);
     setTimeout(() => {   // safety net
       if (fxResolve === resolve) { if (kind === 'in') win.showInactive(); else win.hide(); finishFx(); }
     }, 5000);
-    
+
   });
 }
 ipcMain.on('fx-ready', () => { fxWin.showInactive(); if (fxKind === 'out') win.hide(); });
