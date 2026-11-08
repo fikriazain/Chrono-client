@@ -121,4 +121,7 @@ document.addEventListener('pointerdown', () => window.bubble.touch());
 input.addEventListener('input', () => window.bubble.touch());
 
 window.bubble.onOpen(open);
-window.bubble.onClose(close);
+window.bubble.onClose(() => {
+  if (Date.now() - openedAt < 1500) { console.log('[bubble.js] ignored a close right after opening'); return; }
+  close();
+});
