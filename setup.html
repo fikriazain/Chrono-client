@@ -23,6 +23,7 @@
       <label>Pairing code (ask the sender)</label>
       <input id="token" />
     </div>
+    <p id="err" style="color:#ff5f7a;font-size:12px;margin:8px 0 0"></p>
     <button id="save">Save</button>
     <script>
       const q = new URLSearchParams(location.search);
@@ -30,7 +31,12 @@
       name.value = q.get('name') || '';
       name.select();
       if (q.get('needToken')) document.getElementById('tokrow').style.display = 'block';
-      function save() { window.setup.save(name.value, document.getElementById('token').value); }
+      function save() {
+        const needs = document.getElementById('tokrow').style.display === 'block';
+        const tok = document.getElementById('token').value.trim();
+        if (needs && !tok) { document.getElementById('err').textContent = 'Paste the pairing code first.'; return; }
+        window.setup.save(name.value, tok);
+        }
       document.getElementById('save').onclick = save;
       document.addEventListener('keydown', (e) => { if (e.key === 'Enter') save(); });
     </script>

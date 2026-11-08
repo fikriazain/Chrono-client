@@ -291,6 +291,7 @@ function openSetup(first) {
 }
 
 ipcMain.on('setup-save', (e, d) => {
+  if (!lan.token && !String((d && d.token) || '').trim()) return;   // never save without a pairing code
   const name = String((d && d.name) || '').trim().replace(/[^\p{L}\p{N} _.-]/gu, '').slice(0, 24);
   if (app.isPackaged) app.setLoginItemSettings({ openAtLogin: true });
   if (name) lan.deviceName = name;
@@ -301,7 +302,7 @@ ipcMain.on('setup-save', (e, d) => {
   if (setupWin) setupWin.close();
   updateTray();
   startServer();            // starts now if the token only just arrived
-  
+
 });
 
 // ---------- silent auto-update ----------
