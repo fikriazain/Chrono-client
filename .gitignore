@@ -24,8 +24,6 @@ Thumbs.db
 # Debug captures (if you add screenshot tools later)
 captures/
 
-assets/
-
 
 node_modules/
 dist/
