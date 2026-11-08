@@ -1,7 +1,7 @@
 {
   "name": "chrono-client",
   "productName": "Chrono Receiver",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Chrono message receiver",
   "author": "Zain",
   "license": "ISC",
